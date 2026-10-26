@@ -1,0 +1,13 @@
+# sample data / runtime artifacts
+sample-requests.zip
+/sample-requests
+logs/
+*.log
+
+# python
+.venv
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/

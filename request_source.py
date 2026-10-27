@@ -16,22 +16,22 @@ class S3RequestSource(RequestSource):
         self.s3 = s3_client
         self.bucket = bucket_name
 
-def get_next_request(self) -> Optional[str]:
-    response = self.s3.list_objects_v2(Bucket=self.bucket, MaxKeys=1)
+    def get_next_request(self) -> Optional[str]:
+        response = self.s3.list_objects_v2(Bucket=self.bucket, MaxKeys=1)
 
-    contents = response.get("Contents")
-    if not contents:
-            logger.debug("No requests in %s", self.bucket)
+        contents = response.get("Contents")
+        if not contents:
+                logger.debug("No requests in %s", self.bucket)
+                return None
+        key = contents[0]["Key"]
+
+        try:
+            response = self.s3.get_object(Bucket=self.bucket, Key=key)
+            text = response["Body"].read().decode("utf-8")
+            self.s3.delete_object(Bucket=self.bucket, Key=key)
+        except ClientError:
+            logger.warning("Request %s disappeared before it could be read", key)
             return None
-    key = contents[0]["Key"]
-
-    try:
-        response = self.s3.get_object(Bucket=self.bucket, Key=key)
-        text = response["Body"].read().decode("utf-8")
-        self.s3.delete_object(Bucket=self.bucket, Key=key)
-    except ClientError:
-        logger.warning("Request %s disappeared before it could be read", key)
-        return None
-    logger.info("Retrieved request %s", key)
-    return text
+        logger.info("Retrieved request %s", key)
+        return text
 

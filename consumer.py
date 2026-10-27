@@ -26,9 +26,12 @@ class Consumer:
         while not self._time_is_up(start):
             text = self.source.get_next_request()
             if text is not None:
-                message = self.processor.process(text)
-                logger.info(message)
-                processed += 1
+                try:
+                    message = self.processor.process(text)
+                    logger.info(message)
+                    processed += 1
+                except Exception:
+                    logger.exception("Failed to process request")
             else:
                 time.sleep(self.poll_interval_ms / 1000)
 

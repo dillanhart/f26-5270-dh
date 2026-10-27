@@ -28,8 +28,8 @@ def make_dynamo_table():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     return dynamodb.create_table(
         TableName=TABLE,
-        KeySchema=[{"AttributeName": "widget_id", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "widget_id", "AttributeType": "S"}],
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         BillingMode="PAY_PER_REQUEST",
     )
 
@@ -59,7 +59,7 @@ def test_dynamo_save_flattens_other_attributes():
     store.save(WIDGET)
 
     
-    item = table.get_item(Key={"widget_id": "w1"})["Item"]
+    item = table.get_item(Key={"id": "w1"})["Item"]
     assert item["owner"] == "Mary Matthews"
     assert item["label"] == "JWJYY"
     assert item["rating"] == "2.5"

@@ -2,7 +2,15 @@ import argparse
 import logging
 import sys
 from dataclasses import dataclass
+import boto3
+import os
+
 from typing import Optional, Sequence
+from consumer import Consumer
+from processor import RequestProcessor
+from request_source import S3RequestSource
+from widget_store import DynamoWidgetStore, S3WidgetStore
+
 
 DEFAULT_PROFILE = "default"
 DEFAULT_REGION = "us-east-1"
@@ -91,6 +99,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> ConsumerConfig:
 
 
 def configure_logging(config: ConsumerConfig) -> None:
+    os.makedirs(os.path.dirname(config.log_file) or ".", exist_ok=True)
     logging.basicConfig(
         level=logging.DEBUG if config.verbose else logging.INFO,
         format="%(asctime)s [%(threadName)s] %(levelname)s %(name)s - %(message)s",
@@ -107,8 +116,27 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     for field, value in vars(config).items():
         logger.info("%s: %s", field, value)
 
-    # TODO: build the request source and widget store from `config`
-    # and start the consumer's polling loop here.
+    session = boto3.Session(profile_name=config.profile, region_name=config.region)
+    s3 = session.client("s3")
+
+    source = S3RequestSource(s3, config.request_bucket)
+
+    if config.storage == STORAGE_S3:
+        store = S3WidgetStore(s3, config.widget_bucket)
+    else:
+        table = session.resource("dynamodb").Table(config.dynamodb_table)
+        store = DynamoWidgetStore(table)
+
+    consumer = Consumer(
+        source,
+        RequestProcessor(store),
+        poll_interval_ms=config.poll_interval_ms,
+        max_runtime_ms=config.max_runtime_ms,
+    )
+    try:
+        consumer.run()
+    except KeyboardInterrupt:
+        logger.info("Stopped by user (Ctrl+C)")
     return 0
 
 

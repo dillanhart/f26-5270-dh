@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass
 from typing import Optional
 
 
-RESERVED_DYNAMODB_NAMES = {"widget_id", "owner", "label", "description"}
+RESERVED_DYNAMODB_NAMES = {"id", "owner", "label", "description"}
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ class Widget:
         return json.dumps(asdict(self))
 
     def to_dynamodb_item(self):
-        item = {"widget_id": self.widgetId, "owner": self.owner}
+        item = {"id": self.widgetId, "owner": self.owner}
         if self.label:
             item["label"] = self.label
         if self.description:
@@ -47,16 +47,3 @@ class WidgetRequest:
             requestId=fields.pop("requestId"),
             widget=Widget(**fields),
         )
-
-
-def widget_request(request):
-    data = json.loads(request)
-    match (data["type"]):
-        case "create":
-            return create_request(data)
-        case "delete":
-            return delete_request(data)
-        case "update":
-            return update_request(data)
-        case _:
-            return

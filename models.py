@@ -41,7 +41,6 @@ class WidgetRequest:
 
     @classmethod
     def from_dict(cls, data):
-        # Everything except type and requestId describes the widget itself
         fields = dict(data)
         return cls(
             type=fields.pop("type"),

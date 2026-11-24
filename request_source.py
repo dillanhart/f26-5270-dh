@@ -34,4 +34,3 @@ class S3RequestSource(RequestSource):
             return None
         logger.info("Retrieved request %s", key)
         return text
-

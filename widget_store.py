@@ -40,22 +40,35 @@ class S3WidgetStore(WidgetStore):
         logger.info("Saved widget %s to s3://%s/%s", widget.widgetId, self.bucket, key)
 
     def delete(self, widget: Widget) -> None:
-        key = widget.s3_key()
-        self.s3.put_object(
-            Bucket=self.bucket,
-            Key=key,
-            Body=widget.to_json(),
-        )
-        logger.info("Deleted widget %s from s3://%s/%s", widget.widgetId, self.bucket, key)
+        try: 
+            key = widget.s3_key()
+            self.s3.head_object(Bucket=self.bucket, Key=key)
+            self.s3.delete_object(
+                Bucket=self.bucket,
+                Key=key
+            )
+            logger.info("Deleted widget %s from s3://%s/%s", widget.widgetId, self.bucket, key)
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "404":
+                logger.warning("Widget delete failed %s", e)
+                raise WidgetNotFoundError(f"widget {widget.widgetId} not found") from e
+            raise
 
     def update(self, widget: Widget) -> None:
-        key = widget.s3_key()
-        self.s3.put_object(
-            Bucket=self.bucket,
-            Key=key,
-            Body=widget.to_json(),
-        )
-        logger.info("Updated widget %s in s3://%s/%s", widget.widgetId, self.bucket, key)
+        try:
+            key = widget.s3_key()
+            self.s3.head_object(Bucket=self.bucket, Key=key)
+            self.s3.put_object(
+                Bucket=self.bucket,
+                Key=key,
+                Body=widget.to_json(),
+            )
+            logger.info("Updated widget %s in s3://%s/%s", widget.widgetId, self.bucket, key)
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "404":
+                logger.warning("Widget update failed %s", e)
+                raise WidgetNotFoundError(f"widget {widget.widgetId} not found") from e
+            raise
 
 
 class DynamoWidgetStore(WidgetStore):
@@ -86,7 +99,7 @@ class DynamoWidgetStore(WidgetStore):
             values = {}
             item = widget.to_dynamodb_item()
             for i, (key, value) in enumerate(item.items()):
-                if (key != id):
+                if (key != "id"):
                     parts.append(f"#n{i} = :v{i}") 
                     names[f"#n{i}"] = key
                     values[f":v{i}"] = value

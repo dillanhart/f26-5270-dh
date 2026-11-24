@@ -10,9 +10,12 @@ class FakeStore(WidgetStore):
 
     def __init__(self):
         self.saved = []
+        self.deleted = []
+        self.updated = []
 
-    def save(self, widget: Widget) -> None:
-        self.saved.append(widget)
+    def save(self, widget): self.saved.append(widget)
+    def delete(self, widget): self.deleted.append(widget)
+    def update(self, widget): self.updated.append(widget)
 
 
 def make_request_text(request_type):
@@ -41,25 +44,28 @@ def test_create_saves_widget():
     assert "Created" in message
 
 
-def test_update_saves_nothing():
-    store = FakeStore()
-    processor = RequestProcessor(store)
-
-    message = processor.process(make_request_text("update"))
-
-    assert store.saved == []
-    assert "not implemented" in message
-
-
-def test_delete_saves_nothing():
+def test_delete_deletes_widget():
     store = FakeStore()
     processor = RequestProcessor(store)
 
     message = processor.process(make_request_text("delete"))
 
+    assert len(store.deleted) == 1
+    assert store.deleted[0].widgetId == "w1"
     assert store.saved == []
-    assert "not implemented" in message
+    assert "Deleted" in message
 
+def test_update_updates_widget():
+    store = FakeStore()
+    processor = RequestProcessor(store)
+
+    message = processor.process(make_request_text("update"))
+
+    assert len(store.updated) == 1
+    assert store.updated[0].widgetId == "w1"
+    assert store.updated[0].owner == "Mary Matthews"
+    assert store.saved == []
+    assert "Updated" in message
 
 def test_unknown_type_saves_nothing():
     store = FakeStore()
@@ -69,3 +75,5 @@ def test_unknown_type_saves_nothing():
 
     assert store.saved == []
     assert "Unknown" in message
+
+    

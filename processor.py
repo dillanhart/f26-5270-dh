@@ -35,11 +35,9 @@ class RequestProcessor:
         return f"Created widget {request.widget.widgetId}"
 
     def update(self, request: WidgetRequest) -> str:
-        # HW7: not required yet
-        logger.warning("Update not implemented yet (request %s)", request.requestId)
-        return "Update not implemented yet"
+        self.store.update(request.widget)
+        return f"Updated widget {request.widget.widgetId}"
 
     def delete(self, request: WidgetRequest) -> str:
-        # HW7: not required yet
-        logger.warning("Delete not implemented yet (request %s)", request.requestId)
-        return "Delete not implemented yet"
+        self.store.delete(request.widget)
+        return f"Deleted widget {request.widget.widgetId}"

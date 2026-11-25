@@ -24,14 +24,16 @@ class Consumer:
         logger.info("Consumer started")
 
         while not self._time_is_up(start):
-            text = self.source.get_next_request()
-            if text is not None:
+            request = self.source.get_next_request()
+            if request is not None:
                 try:
-                    message = self.processor.process(text)
+                    message = self.processor.process(request.body)
                     logger.info(message)
                     processed += 1
                 except Exception:
                     logger.exception("Failed to process request")
+                finally:
+                    self.source.acknowledge(request)
             else:
                 time.sleep(self.poll_interval_ms / 1000)
 

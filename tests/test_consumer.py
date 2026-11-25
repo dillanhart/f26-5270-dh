@@ -1,19 +1,23 @@
 import time
 
 from consumer import Consumer
-from request_source import RequestSource
+from request_source import RequestSource, ReceivedRequest
 
 
 class FakeSource(RequestSource):
     """Hands out the given strings one at a time, then None forever."""
 
     def __init__(self, requests):
-        self.requests = list(requests)
+        self.requests = [ReceivedRequest(text) for text in requests]
+        self.acknowledged = []
 
     def get_next_request(self):
         if self.requests:
             return self.requests.pop(0)
         return None
+
+    def acknowledge(self, request):
+        self.acknowledged.append(request)
 
 
 class FakeProcessor:
@@ -68,3 +72,17 @@ def test_zero_max_runtime_means_never_time_up():
     consumer = Consumer(FakeSource([]), FakeProcessor(), poll_interval_ms=10, max_runtime_ms=0)
 
     assert consumer._time_is_up(start=0) is False
+
+
+class FailingProcessor:
+    def process(self, request_text):
+        raise ValueError("boom")
+
+def test_failed_request_is_still_acknowledged():
+    source = FakeSource(["a"])
+    consumer = Consumer(source, FailingProcessor(), poll_interval_ms=10, max_runtime_ms=50)
+
+    count = consumer.run()
+
+    assert count == 0
+    assert len(source.acknowledged) == 1
